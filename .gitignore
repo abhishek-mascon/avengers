@@ -1,0 +1,7 @@
+.DS_Store
+.project
+.pydevproject
+.settings/
+cm17NOV2017bhav.csv
+fury/migrations/0003_stocks.py
+ui/.DS_Store

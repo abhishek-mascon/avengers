@@ -5,13 +5,17 @@ import Card from 'components/Card/Card';
 import {iconsArray} from 'variables/Variables.jsx';
 import { FormGroup, ControlLabel, FormControl, Modal } from 'react-bootstrap';
 import { GridLoader } from 'react-spinners';
+import Select from 'react-select';
+import 'react-select/dist/react-select.css';
 
 
 
 var api =  require('../../utils/api');
 
+
+
 const MyRow = function(props){
-  const {checked, row, onChange, onChecked} = props;
+  const {key, checked, row, state, onChange, onChecked, onSelect} = props;
   return (
     <div>
       <Row>
@@ -28,14 +32,12 @@ const MyRow = function(props){
       <div key="2" className="col-md-2">
           <FormGroup>
                 <ControlLabel>Stock</ControlLabel>
-                <FormControl 
-                     className="pf-stock" 
-                     type="text"
-                     bsClass= "form-control"
-                     autoFocus= "true"
-                     placeholder="Stock"
-                     onChange= {onChange}
-                     value={row.stock}
+                <Select
+                  name="form-field-name"
+                  value={row.stock}
+                  options={state.items}
+                  onChange= {onSelect}
+                  className="pf-stock"
                 />
           </FormGroup>
       </div>
@@ -53,7 +55,7 @@ const MyRow = function(props){
           </FormGroup>
       </div>
       <div key="4" className="col-md-3">
-          <FormGroup>
+          <FormGroup validationState='error'>
                 <ControlLabel>Price</ControlLabel>
                 <FormControl 
                      className="pf-price"  
@@ -91,25 +93,39 @@ class Portfolio extends Component {
         this.state = {
           rows: [],
           loading: true,
-          portfolio: []
+          portfolio: [],
+          items:[],
+          value: ''
         };
     }
 
     updateValue(e, idx){
         var className = e.target.className;
         const rows = this.state.rows;
-        if(className.indexOf("stock") > -1) {
-            rows[idx].stock = e.target.value;
-        } else if (className.indexOf("shares") > -1) {
+
+        if (className.indexOf("shares") > -1) {
             rows[idx].shares = e.target.value;
-        } else if (className.indexOf("price") > -1) {
+        } 
+        else if (className.indexOf("price") > -1) {
             rows[idx].price = e.target.value;
-        } else if (className.indexOf("notes") > -1) {
+        } 
+        else if (className.indexOf("notes") > -1) {
             rows[idx].notes = e.target.value;
         }
         this.setState({
-            rows,
+            rows
         });
+    }
+
+    onSelect(selectedOption, idx) {
+        var value = selectedOption;
+        var rows = this.state.rows;
+        rows[idx].stock = value;
+        console.log(rows);
+        this.setState({
+            rows
+        });
+
     }
       
     onChecked(idx){
@@ -135,7 +151,6 @@ class Portfolio extends Component {
         this.setState({
           rows,
         });
-        
     }
 
     addToFolio(){
@@ -143,8 +158,12 @@ class Portfolio extends Component {
         this.setState({loading: true});
         api.addToFolio(this.state.rows)
           .then(function (response) {
-             var portfolio = self.state.portfolio.concat(self.state.rows);
-             var rows = [];
+             var rows = self.state.rows;
+             rows.map((row, idx) => {
+                row.stock = row.stock.label;
+             })
+             var portfolio = self.state.portfolio.concat(rows);
+             rows = []
              self.setState({
                loading: false,
                portfolio: portfolio,
@@ -157,28 +176,30 @@ class Portfolio extends Component {
         var self = this;
         api.getPortfolio()
           .then(function (response) {
-            var portfolio = [];
-            if(response.success) {
-                var data = response.data;
-                var item;
-                for(item in data) {
-                    var fields = data[item].fields;
-                    var row = 
-                    {
-                        stock:fields.stock, 
-                        shares: fields.shares, 
-                        price: fields.price, 
-                        notes: fields.notes
-                    };
-                    portfolio.push(row);
-                }
-            } else {
-                
-            }
-            self.setState({
-               loading: false,
-               portfolio: portfolio
-            });
+              var portfolio = [];
+              var items = JSON.parse(localStorage.getItem('stocks'));
+              if(response.success) {
+                  var data = response.data;
+                  var item;
+                  for(item in data) {
+                      var fields = data[item].fields;
+                      var row = 
+                      {
+                          stock:fields.stock, 
+                          shares: fields.shares, 
+                          price: fields.price, 
+                          notes: fields.notes
+                      };
+                      portfolio.push(row);
+                  }
+              } else {
+                  console.log('Failure');
+              }
+              self.setState({
+                 loading: false,
+                 portfolio: portfolio,
+                 items: items
+              });
           });
     }
 
@@ -266,8 +287,10 @@ class Portfolio extends Component {
                                                     key={idx} 
                                                     row={row}
                                                     checked={row.checked}
+                                                    state={this.state}
                                                     onChange={(e) => this.updateValue(e,idx)} 
                                                     onChecked={() => this.onChecked(idx)}
+                                                    onSelect={(e) => this.onSelect(e, idx)}
                                                   /> 
                                                 )
                                             })
