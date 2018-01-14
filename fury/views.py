@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.core import serializers
-from fury.models import Portfolio
+from fury.models import Portfolio, Stocks
 import json
 
 # Create your views here.
@@ -32,6 +32,13 @@ def get_portfolio(request):
     portfolio = Portfolio.objects.filter(user_id=user_id)
     content = serializers.serialize("json", portfolio)
     return Response(json.loads(content))
+
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated, ))
+def get_stock_codes(request):
+    stock_codes = Stocks.objects.values('id', 'symbol')
+    return Response(stock_codes)
     
 
 @api_view(['POST'])
@@ -45,7 +52,7 @@ def add_to_portfolio(request):
         body = json.loads(request.body)
         items = body['items']
         for item in items:
-            stock = item['stock']
+            stock = item['stock']['label']
             shares = item['shares']
             notes = item['notes']
             price = item['price']

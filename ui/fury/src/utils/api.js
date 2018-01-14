@@ -65,7 +65,20 @@ module.exports = {
 		return this.post(url, params, true);
 	},
 
+	load_stocks: function () {
+		var url = 'fury/stocks';
+		this.get(url, true)
+		.then(function (response) {
+			var symbols = [];
+			response.data.map((stock) => {
+				symbols.push({label: stock['symbol'], value: stock['id']});
+			});
+			localStorage.setItem('stocks', JSON.stringify(symbols));
+		});
+	},
+
 	getPortfolio: function () {
+		this.load_stocks();
 		var url = 'fury/portfolio/get';
 		return this.get(url, true);
 	}
